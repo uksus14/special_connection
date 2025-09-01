@@ -21,10 +21,13 @@
     }.controls{
         height: 30px;
         display: flex;
+        display: none; 
         gap: 5px;
     }.controls > *{
         width: 30px;
         height: 100%
+    }#editor-block{
+        padding: 10px;
     }
 </style>
 {% endblock %}
@@ -47,7 +50,7 @@
 </header>
 <main>
     <div id="editor-block">
-        <div class="controls">
+        <div class="controls"> <!-- TODO add controls -->
             <button title="bolden the selected text" onclick="bold()"></button>
             <button title="italicise the selected text" onclick="italic()"></button>
             <button title="strike through the selected text" onclick="strikethrough()"></button>
@@ -58,6 +61,7 @@
     </div>
     <div id="view" style="display: none">
         <div id="main"></div>
+        <div id="main-scripts"></div>
     </div>
 </main>
 {% endblock %}
@@ -76,6 +80,7 @@
     const viewBlock = document.getElementById('view');
     const viewBtn = document.getElementById('view-btn');
     const main = document.getElementById('main');
+    const mainScripts = document.getElementById('main-scripts')
     let isViewing = false;
     titleDisplay.addEventListener('click', (ev) => {
         titleInput.value = titleDisplay.textContent;
@@ -166,6 +171,7 @@
         }isViewing = !isViewing
     }viewBtn.onclick = toggleView
     function render(){
+        mainScripts.innerHTML = "";
         fetch("/render", {
             method: 'POST',
             body: editor.value,
@@ -177,6 +183,12 @@
                 isViewing = true
             }else editor.value = source;
             main.innerHTML = content;
+            [...main.getElementsByTagName("script")].forEach(oldScript => {
+                const newScript = document.createElement("script");
+                newScript.textContent = oldScript.textContent;
+                mainScripts.appendChild(newScript);
+                oldScript.remove();
+            });
         })
     }
     function addText(text){

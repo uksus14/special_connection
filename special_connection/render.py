@@ -1,8 +1,9 @@
-from xml.etree.ElementTree import Element, SubElement
+from xml.etree.ElementTree import Element, tostring
 from markdown.inlinepatterns import InlineProcessor
 from markdown.blockprocessors import BlockProcessor
 from utils import generate_core_id, get_user
 from markdown.extensions import Extension
+from markdown.util import AtomicString
 from images.models import Image
 from re import PatternError
 from typing import Callable
@@ -45,15 +46,22 @@ class AutoBlockProcessor(BlockProcessor):
     NAME: str
     RE_FENCE_START: str
     RE_LINE: Callable[[], str]
+    FENCE_END = ""
     LINE_TEMPLATE: str
     def test(self, parent, block):
         return re.match(self.RE_FENCE_START, block.partition("\n")[0].strip())
     def run(self, parent, blocks):
         block = blocks.pop(0).split("\n")
-        root_data = re.match(self.RE_FENCE_START, block[0]).groupdict()
+        root_data = re.match(self.RE_FENCE_START, block[0].strip()).groupdict()
         el = self.create(**root_data)
-        parent.append(el)
+        if(self.FENCE_END):
+            while blocks:
+                if block[-1].strip() == self.FENCE_END:
+                    block = block[:-1]
+                    break
+                block.extend(blocks.pop(0).split("\n"))
         self.fill(el, block[1:])
+        parent.append(el)
     def create(self, **kwargs) -> Element:
         raise NotImplementedError
     def fill(self, parent: Element, lines: list[str]):
@@ -85,9 +93,43 @@ class ImageProcessor(AutoInlineProcessor):
         el.set("class", " ".join(classes))
         el.set("style", " ".join(styles))
         return el
+class ButtonProcessor(AutoInlineProcessor):
+    NAME = "inline-button"
+    RE = lambda*_:fr'!btn({reownership()})?-(?P<id>[a-zA-Z0-9]+){retext}{restyles}'
+    TEMPLATE = "!btn:{ownership}-{id}(({text}))[{styles}]"
+    def handle(self, groups: dict[str, str], string: str):
+        el = Element("button")
+        if groups["id"]: el.set("id", groups["id"])
+        classes, styles = parse_styles(el, groups["styles"])
+        classes.append("interface-btn")
+        classes.extend(parse_names(groups["ownership"] or 'none'))
+        el.set("class", " ".join(classes))
+        el.set("style", " ".join(styles))
+        el.text = groups["text"]
+        return el
+class CSSProcessor(AutoBlockProcessor):
+    NAME = "style"
+    RE_FENCE_START = r"\[!style\]"
+    RE_LINE = lambda*_:r"(?P<text>.*)"
+    FENCE_END = "[/style]"
+    def create(self):
+        return Element("style")
+    def fill(self, parent: Element, lines: list[str]):
+        parent.text = self.parser.md.htmlStash.store("\n".join(lines))
+class JSProcessor(AutoBlockProcessor):
+    NAME = "script"
+    RE_FENCE_START = r"\[!script\]"
+    RE_LINE = lambda*_:r"(?P<text>.*)"
+    FENCE_END = "[/script]"
+    LITERAL = True
+    def create(self):
+        return Element("script")
+    def fill(self, parent: Element, lines: list[str]):
+        parent.text = self.parser.md.htmlStash.store(f"{{{'\n'.join(lines)}}}")
 
 class StaticExtension(AutoExtension):
-    INLINE_PROCESSORS = [ImageProcessor]
+    INLINE_PROCESSORS = [ImageProcessor, ButtonProcessor]
+    BLOCK_PROCESSORS = [CSSProcessor, JSProcessor]
 
 class UserSpanProcessor(AutoInlineProcessor):
     NAME = "user-span"

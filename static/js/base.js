@@ -92,12 +92,19 @@ function renderCards(markdowns){
 }
 
 function renderMarkdown(){
+    const main = document.getElementById('main');
     renderSearch = new URLSearchParams(window.location.search);
     renderSearch.set("render", "true");
     return fetch(`${window.location.pathname}?${renderSearch.toString()}`, {
         method: 'GET',
         headers: { 'X-CSRFToken': window.csrf_token }
     }).then(response => response.text()).then(content => {
-        document.getElementById('main').innerHTML = content;
+        main.innerHTML = content;
+        [...main.getElementsByTagName("script")].forEach(oldScript => {
+            const newScript = document.createElement("script");
+            newScript.textContent = oldScript.textContent;
+            document.body.appendChild(newScript);
+            oldScript.remove();
+        });
     });
 }

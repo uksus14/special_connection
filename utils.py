@@ -11,7 +11,7 @@ from random import choices
 
 env: dict[str, list[dict[str, str]]]
 try:
-    with open("./env.json") as f:
+    with open("./env.json", encoding='utf-8') as f:
         env = loads(f.read())
 except FileNotFoundError:
     print("Set up env.json from env_example.json")
