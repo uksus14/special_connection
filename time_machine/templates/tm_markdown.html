@@ -1,0 +1,53 @@
+{% extends 'tm_base.html' %}
+{% load static %}
+{% block title %}{{ markdown.title.content }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/markdown.css' %}">
+{% endblock %}
+{% block main %}
+<header>
+    <div id="title" class="pill{% for owner in markdown.ownership.owners.all %} pill-{{ owner.pk }}{% endfor %}">
+        <p>{{ markdown.title.content }}</p>
+    </div>
+    <div id="control-buttons">
+        <button class="interface-btn" id="view-btn">View source code</button>
+    </div>
+    <div id="generalInfo">
+        <p>created: <span class="pill pill-{{ markdown.downtime.author.pk }}">{{ markdown.downtime.end }}</span></p>
+        <p>last edited: <span id="last-edited" class="pill pill-{{ markdown.lastc.author.pk }}">{{ markdown.edited }}</span></p>
+    </div>
+</header>
+<main>
+    <div id="source" style="display: none">
+        <textarea id="editor" disabled></textarea>
+    </div>
+    <div id="render">
+        <div id="main"></div>
+    </div>
+</main>
+{% endblock %}
+
+{% block js %}
+<script>
+    const viewBtn = document.getElementById("view-btn")
+    const renderBox = document.getElementById("render")
+    const sourceBox = document.getElementById("source")
+    let isViewing = false;
+    document.getElementById("editor").value = `{{ markdown.text.content|escapejs }}`;
+    viewBtn.onclick = () => {
+        if(isViewing){
+            viewBtn.innerText = "View source code";
+            renderBox.style.display = "block";
+            sourceBox.style.display = "none";
+        }else{
+            viewBtn.innerText = "Render markdown";
+            renderBox.style.display = "none";
+            sourceBox.style.display = "block";
+        }isViewing = !isViewing
+    }
+    document.addEventListener('DOMContentLoaded', (ev) => {
+        renderMarkdown();
+    });
+</script>
+{% endblock %}

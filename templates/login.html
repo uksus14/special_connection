@@ -1,0 +1,86 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head data-reality="editor">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Page</title>
+  {% include 'shared_head.html' %}
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .login-container {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    .login-container h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .login-container input[type="text"],
+    .login-container input[type="password"] {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .login-container button {
+      width: 100%;
+      padding: 0.75rem;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .login-container button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2>Login</h2>
+    <div>
+      <input type="text" name="code" id="code" placeholder="Code" required />
+      <p style="color:red" id="wrong-message"></p>
+      <button type="submit" id="loginBtn" onclick="login()">Log In</button>
+    </div>
+  </div>
+
+  <script src="{% static 'js/base.js' %}"></script>
+  <script>
+    const code = document.getElementById('code');
+    const wrongMessage = document.getElementById('wrong-message');
+    const loginBtn = document.getElementById('loginBtn');
+    code.addEventListener("keypress", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        loginBtn.click();
+      }
+    });
+    function login() {
+        fetch(`{% url 'login' %}`, {
+            method: 'POST',
+            body: code.value,
+            headers: { 'X-CSRFToken': window.csrf_token}
+        }).then(response => {
+            if (response.ok) return window.location.reload();
+            wrongMessage.innerText = 'wrong code!'
+            setTimeout(() => {wrongMessage.innerText = ''}, 500)
+        })
+    }
+  </script>
+</body>
+</html>

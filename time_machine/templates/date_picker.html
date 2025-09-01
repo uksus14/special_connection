@@ -1,0 +1,315 @@
+<style>
+    .date-picker {
+        flex: 4;
+    }
+    .date-picker .header {
+        display: flex;
+        justify-content: space-around !important;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .date-picker select {
+        font-size: 1.2em;
+        text-align: center;
+        border: none;
+        outline: none;
+        background: rgba(var(--user-color-rgb), .4);
+        border-radius: 6px;
+        padding: 5px;
+    }
+    
+    .date-picker .header button {
+        background: rgba(var(--user-color-rgb), .4);
+        height: 27px;
+    }
+    .date-picker #monthYear {
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+
+    .date-picker table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .date-picker tr {
+        display: flex;
+        gap: 5px;
+        margin: 5px 0;
+    }
+
+    .date-picker th {
+        flex: 1;
+        padding: 8px 0;
+        font-weight: normal;
+        color: #666;
+    }
+    
+    .date-picker td {
+        flex: 1;
+        text-align: center;
+        padding: 10px 0;
+        border-radius: 4px;
+    }
+    .date-picker td.date {
+        cursor: pointer;
+        position: relative;
+    }.date-picker td.date div {
+        z-index: 10;
+        position: relative;
+    }.date-picker td.date .change-mark {
+        z-index: 10;
+        position: absolute;
+        width: 1px;
+        height: 20%;
+        top: 0;
+        left: 50%;
+        transform-origin: 50% 250%;
+    }
+    .date-picker td.date:hover {
+        background: rgba(var(--user-color-rgb), .4);
+    }.date-picker td.date::after {
+        content: "";
+        position: absolute;
+        background: var(--downtime-color);
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        clip-path: polygon(0 0);
+        z-index: 1;
+    }.date-picker table .short-downtime::after {
+        clip-path: polygon(
+            50% 30%,
+            30% 0,
+            70% 0
+        );
+    }.date-picker table .short-downtime.now::after {
+        background: var(--now-color);
+    }.date-picker table .left-downtime::after {
+        clip-path: polygon(
+            70% 50%,
+            100% 20%,
+            100% 80%
+        );
+    }.date-picker table .right-downtime::after {
+        clip-path: polygon(
+            30% 50%,
+            0 20%,
+            0 80%
+        );
+    }.date-picker table .left-downtime.right-downtime {
+        color: white;
+        cursor: not-allowed;
+    }.date-picker table .left-downtime.right-downtime:hover {
+        background-color: inherit;
+    }.date-picker table .not-available::after {
+        background: var(--not-available-color);
+    }.date-picker table .left-downtime.right-downtime::after {
+        clip-path: polygon(
+            0 90%,
+            100% 90%,
+            100% 0,
+            0 0
+        );
+    }
+    .date-picker td.date.selected {
+        background: var(--user-color);
+        font-weight: bold;
+    }
+</style>
+<div class="date-picker">
+    <div class="header">
+        <button id="prevMonth" class="interface-btn"><span>&larr;</span></button>
+        <div id="monthYear">
+            <select id="monthSelect"></select>
+            <select id="yearSelect"></select>
+        </div>
+        <button id="nextMonth" class="interface-btn"><span>&rarr;</span></button>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Su</th><th>Mo</th><th>Tu</th><th>We</th><th>Th</th><th>Fr</th><th>Sa</th>
+            </tr>
+        </thead>
+        <tbody id="calendarBody"></tbody>
+    </table>
+</div>
+<script>
+const prevMonthBtn = document.getElementById('prevMonth');
+const nextMonthBtn = document.getElementById('nextMonth');
+const calendarBody = document.getElementById('calendarBody');
+const yearSelect = document.getElementById('yearSelect');
+const monthSelect = document.getElementById('monthSelect');
+const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+];
+const now = new Date();
+
+document.addEventListener('DOMContentLoaded', () => DatePickerInit(window.datetime));
+
+function DatePickerInit(datetime) {
+    window.selected_datetime.setFullYear(datetime.getFullYear(), datetime.getMonth(), datetime.getDate());
+    window.renderClockMetaData();
+    displayedMonth = window.selected_datetime.getMonth()
+    displayedYear = window.selected_datetime.getFullYear()
+
+    // Populate year dropdown (20 years back and forward)
+    yearSelect.innerHTML = '';
+    for (let y = displayedYear - 5; y <= Math.min(now.getFullYear(), displayedYear + 5); y++) {
+        let option = document.createElement('option');
+        option.value = y;
+        option.textContent = y;
+        if (y === displayedYear) option.selected = true;
+        yearSelect.appendChild(option);
+    }
+    monthSelect.innerHTML = '';
+    for (let m = 0; m < 12; m++) {
+        let option = document.createElement('option');
+        option.value = m;
+        option.textContent = months[m];
+        if (m === displayedMonth) option.selected = true;
+        monthSelect.appendChild(option);
+    }
+    prevMonthBtn.onclick = () => {
+        displayedMonth--;
+        if (displayedMonth < 0) {
+            displayedMonth = 11;
+            displayedYear--;
+        }
+        renderCalendar(displayedMonth, displayedYear);
+    };
+
+    nextMonthBtn.onclick = () => {
+        displayedMonth++;
+        if (displayedMonth > 11) {
+            displayedMonth = 0;
+            displayedYear++;
+        }
+        renderCalendar(displayedMonth, displayedYear);
+    };
+
+    yearSelect.onchange = () => {
+        displayedYear = parseInt(yearSelect.value, 10);
+        renderCalendar(displayedMonth, displayedYear);
+    };
+    monthSelect.onchange = () => {
+        displayedMonth = parseInt(monthSelect.value, 10);
+        renderCalendar(displayedMonth, displayedYear);
+    };
+    renderCalendar(displayedMonth, displayedYear);
+}
+
+function renderDateChanges() {
+    if(!window.changes[`${displayedYear}-${displayedMonth}`]) return;
+    window.changes[`${displayedYear}-${displayedMonth}`].forEach(({time, user}) => {
+        const cell = document.getElementById(`day-${time.getDate()}`);
+        const mark = document.createElement('div');
+        mark.className = 'change-mark';
+        mark.style.backgroundColor = `var(--color-${user})`;
+        mark.style.transform = `rotate(${cell.getElementsByClassName('change-mark').length*16}deg)`;
+        cell.appendChild(mark);
+    })
+}function renderDateDowntimes() {
+    const now = new Date();
+    if(now.getFullYear() == displayedYear && now.getMonth() == displayedMonth){
+        const nowDay = document.getElementById(`day-${now.getDate()}`)
+        nowDay.classList.add('short-downtime');
+        nowDay.classList.add('now');
+    }if(!window.downtimes) return;
+    window.downtimes.filter(({start, end}) => {
+        return (start.getFullYear() == displayedYear && start.getMonth() == displayedMonth) ||
+        (end.getFullYear() == displayedYear && end.getMonth() == displayedMonth)
+    }).forEach(({start, end}) => {
+        if(start.getFullYear() == end.getFullYear() &&
+            start.getMonth() == end.getMonth() &&
+            start.getDate() == end.getDate()){
+            if(start.getMonth() == displayedMonth &&
+                start.getFullYear() == displayedYear)
+                document.getElementById(`day-${start.getDate()}`).classList.add('short-downtime')
+            return
+        }
+        let start_date = 1;
+        if(start.getMonth() == displayedMonth && start.getFullYear() == displayedYear){
+            start_date = start.getDate()+1;
+        }let end_date = new Date(displayedYear, displayedMonth+1, 0).getDate();
+        if(end.getMonth() == displayedMonth && end.getFullYear() == displayedYear){
+            end_date = end.getDate()-1;
+        }for(let d=(start_date-1)||1;d<=end_date;d++){
+            document.getElementById(`day-${d}`).classList.add('left-downtime')
+        }for(let d=start_date;d<=end_date+1;d++){
+            document.getElementById(`day-${d}`).classList.add('right-downtime')
+        }
+    })
+    if(!window.starts_existing)return;
+    if(window.starts_existing.getFullYear() < displayedYear) return;
+    if(window.starts_existing.getFullYear() > displayedYear){
+        return deactivateCalendarTill(new Date(displayedYear, displayedMonth+1, 0).getDate());
+    }if(window.starts_existing.getMonth() < displayedMonth) return;
+    if(window.starts_existing.getMonth() > displayedMonth){
+        return deactivateCalendarTill(new Date(displayedYear, displayedMonth+1, 0).getDate());
+    }deactivateCalendarTill(window.starts_existing.getDate()-1);
+    const start = document.getElementById(`day-${window.starts_existing.getDate()}`)
+    start.classList.add('right-downtime')
+    start.classList.add('not-available')
+}
+function deactivateCalendarTill(day) {
+    for (let d = 1; d <= day; d++) {
+        const cell = document.getElementById(`day-${d}`);
+        cell.classList.add('left-downtime');
+        cell.classList.add('right-downtime');
+        cell.classList.add('not-available');
+        cell.onclick = () => {};
+    }
+}
+
+function renderCalendar(month, year) {
+    // Set month-year header
+    yearSelect.value = year;
+    monthSelect.value = month;
+
+    // Get first and last day
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // Clear previous rows
+    calendarBody.innerHTML = "";
+
+    let date = 1;
+    for (let i = 0; i < 6; i++) {
+        let row = document.createElement('tr');
+
+        for (let j = 0; j < 7; j++) {
+            let cell = document.createElement('td');
+            row.appendChild(cell);
+            if (i === 0 && j < firstDay) {
+                cell.textContent = "";
+                continue;
+            } if (date > daysInMonth) {
+                cell.textContent = "";
+                continue;
+            }
+            cell.classList.add('date');
+            cell.id = `day-${date}`
+            let inner = document.createElement('div');
+            inner.textContent = date;
+            cell.appendChild(inner);
+            if (date === window.selected_datetime.getDate() && month === window.selected_datetime.getMonth() && year === window.selected_datetime.getFullYear()) {
+                cell.classList.add('selected');
+            }
+            date++;
+            cell.onclick = () => {
+                window.selected_datetime.setFullYear(year, month, parseInt(cell.textContent));
+                window.selectedTimeChanged()
+                window.renderClockMetaData();
+                renderCalendar(displayedMonth, displayedYear);
+            };
+        }
+        calendarBody.appendChild(row);
+    }renderDateDowntimes();
+    renderDateChanges();
+    fetchChanges(displayedYear, displayedMonth);
+}
+</script>

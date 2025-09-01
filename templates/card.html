@@ -1,0 +1,43 @@
+{% load filter_extras %}
+{% if markdown.active %}
+<a href="{{ markdown.url }}">
+    <div class="card" data-index="{{ markdown.index }}" id="card-{{ markdown.index }}">
+        <div class="pill-info">
+            <div class="pill time-pill pill-{{ markdown.downtime.author.pk }}">{{ markdown.downtime.end|timesince_short:time }}</div>
+            <div class="pill time-pill pill-{{ markdown.lastc.author.pk }}">{{ markdown.lastc.time|timesince_short:time }}</div>
+        </div>
+        <div class="pill title-pill{% for owner in markdown.ownership.owners.all %} pill-{{ owner.pk }}{% endfor %}">
+            <div>{{ markdown.title.content }}</div>
+            {% if request.user not in markdown.seen.all %}<div class="unseen-dot"></div>{% endif %}
+        </div>
+        <div class="preview">
+            {% if markdown.text.content %}
+            {% for line in markdown.text.content|splitlines|head:10 %}
+            <p>{{ line }}</p>
+            {% endfor %}
+            {% else %}
+            <div class="no-preview">This markdown is empty</div>
+            {% endif %}
+        </div>
+    </div>
+</a>
+{% elif brief %}
+<a href="{{ markdown.url }}">
+    <div class="card inactive-card" data-index="{{ markdown.index }}">
+        <div class="pill title-pill{% for owner in markdown.ownership.owners.all %} pill-{{ owner.pk }}{% endfor %}">{{ markdown.title.content }}</div>
+        <div class="pill time-pill pill-{{ markdown.downtime.author.pk }}">{{ markdown.downtime.time|timesince_short:time }}</div>
+    </div>
+</a>
+{% else %}
+<div class="card inactive-card" data-index="{{ markdown.index }}">
+    <div class="pill-info">
+        <div class="pill time-pill pill-{{ markdown.downtime.author.pk }}">{{ markdown.downtime.time|timesince_short:time }}</div>
+    <a href="{{ markdown.url }}"><div class="pill time-pill pill-{{ request.user.pk }}">Time travel</div></a>
+    </div>
+    <div class="pill title-pill{% for owner in markdown.ownership.owners.all %} pill-{{ owner.pk }}{% endfor %}">{{ markdown.title.content }}</div>
+    <div class="preview" style="background-color: #e7e7e7;font-size: 1.3em;display: flex;flex-direction: column;justify-content: space-between;">
+        <p>This markdown was deleted</p>
+        <button style="height: 50px" class="interface-btn red-btn" onclick="restore('{{ markdown.index }}')">Restore</button>
+    </div>
+</div>
+{% endif %}

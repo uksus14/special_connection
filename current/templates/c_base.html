@@ -1,0 +1,17 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head data-reality="current">
+    {% include 'shared_head.html' %}
+    <title>{% block title %}{% endblock %} - current</title>
+    <link rel="stylesheet" href="{% static 'css/current_base.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {% include 'upload_popup.html' %}
+    {% block main %}{% endblock %}
+    {% include 'interface.html' %}
+    {% block js %}
+    {% endblock %}
+</body>
+</html>

@@ -1,0 +1,17 @@
+{% extends 'tm_base.html' %}
+{% load static %}
+{% load filter_extras %}
+{% block title %}Deactivated{% endblock %}
+
+{% block main %}
+<main id="main">
+    <div class="center only-message">
+        <p>This markdown is deactivated, go to
+            <a href="?time={{ markdown.edited|undelay|to_string }}"> before deactivation</a>
+        {% if markdown.downtime.end %}
+            or
+            <a href="?time={{ markdown.downtime.end|delay|to_string }}"> after activation</a></p>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}

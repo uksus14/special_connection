@@ -1,0 +1,94 @@
+{% load filter_extras %}
+<style>
+    :root {
+        --downtime-color: #999;
+        --not-available-color: #33cc33;
+        --now-color: #991111;
+    }
+    #datetime-picker {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        gap: 20px;
+    }
+    #datetime-picker .divider {
+        height: 300px;
+        width: 2px;
+        background-color: var(--user-color);
+    }.popup-header {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+    }
+</style>
+<div class="popup-header">
+    <button class="interface-btn" onclick="goPrevious()">Previous</button>
+    <h3>Time travel!</h3>
+    <button class="interface-btn" onclick="goNext()">Next</button>
+</div>
+<div id="datetime-picker">
+    {% include 'date_picker.html' %}
+    <div class="divider"></div>
+    {% include 'time_picker.html' %}
+</div>
+<script>
+    window.selected_datetime = new Date();
+    window.starts_existing = new Date({{ starts_existing|stamp }})
+    window.changes = {};
+    function currentChanges() {
+        const selected = window.selected_datetime;
+        return window.changes[`${selected.getFullYear()}-${selected.getMonth()}`];
+    }
+    fetch(`${window.location.pathname.replace(/\/$/, "")}/downtimes`, {
+        'method': 'GET',
+        'headers': { 'X-CSRFToken': window.csrf_token }
+    }).then(response => response.json()).then(data => {
+        window.downtimes = data.downtimes.map(({start, end}) => ({
+            start: new Date(start),
+            end: new Date(end)
+        }));
+        renderDateDowntimes();
+        renderTimeDowntimes();
+    });
+    function fetchChanges(year, month){
+        if(window.changes[`${year}-${month}`])return;
+        fetch(`${window.location.pathname.replace(/\/$/, "")}/changes?year=${year}&month=${month}`, {
+            'method': 'GET',
+            'headers': { 'X-CSRFToken': window.csrf_token }
+        }).then(response => response.json()).then(data => {
+            window.changes[`${year}-${month}`] = data.changes.map(({time, user}) => ({
+                time: new Date(time),
+                stamp: time,
+                user: user
+            }));
+            renderDateChanges();
+            renderTimeChanges();
+        });
+    }function goToStamp(time) {
+        const datetime = new Date(time);
+        DatePickerInit(datetime);
+        TimePickerInit(datetime);
+        window.selected_datetime.setSeconds(datetime.getSeconds(), datetime.getMilliseconds());
+        setHandFromValues(true);
+        window.selectedTimeChanged()
+    }
+    function goNext() {
+        if (!currentChanges()) return;
+        let nextIndex = currentChanges().findIndex(({time}) => window.selected_datetime < time)
+        if (nextIndex == -1) return;
+        let nextTime = currentChanges()[nextIndex].stamp+1000;
+        if (nextIndex !== currentChanges().length-1) {
+            nextTime = Math.min(nextTime, currentChanges()[nextIndex+1].stamp);
+        }goToStamp(nextTime);
+    }
+    function goPrevious() {
+        if (!currentChanges()) return;
+        let prevIndex = currentChanges().findLastIndex(({time}) => time < window.selected_datetime)-1;
+        if (prevIndex < 0) return;
+        let prevTime = currentChanges()[prevIndex].stamp+1000;
+        if (prevIndex !== currentChanges().length-1) {
+            prevTime = Math.min(prevTime, currentChanges()[prevIndex+1].stamp);
+        }goToStamp(prevTime);
+    }window.selectedTimeChanged = () => {};
+</script>

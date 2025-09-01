@@ -1,0 +1,12 @@
+{% load static %}
+{% load filter_extras %}
+<div id="top-buttons">
+    <button class="interface-btn" onclick="back()">Back</button>
+</div>
+<div id="shift-buttons">
+    <button class="interface-btn" id='current-shift' onclick="shiftRealities('current')">Current</button>
+    <button class="interface-btn" id='editor-shift' onclick="shiftRealities('editor')">Editor</button>
+    <button class="interface-btn" id='time-machine-shift' onclick="shiftRealities('time-machine')">Time machine</button>
+    <button class="interface-btn" id='hacks-shift' onclick="shiftRealities('hacks')">Hacks</button>
+</div>
+<script src="{% static 'js/base.js' %}"></script>

@@ -1,0 +1,140 @@
+<style>
+    #fileLabel {
+        border: 2px solid var(--secondary-color);
+    }#fileLabel:hover {
+        background-color: #ddd;
+    }
+    #uploadStatus {
+        height: 1.5em;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+</style>
+
+<div id="popup-upload" class="popup">
+    <div class="popup-content">
+        <h3 id="upload-help">Upload Image</h3>
+        <img id="imagePreview" alt="" style="display:none;">
+        <div id="uploadStatus"></div>
+        <div id="choose-file">
+            <input type="file" id="imageFile" accept="image/*" style="display: none;">
+            <label for="imageFile" id="fileLabel" class="interface-btn">Choose Image</label>
+        </div>
+        <div class="rename-section" id="name-file" style="display: none;">
+            <input type="text" id="imageName" placeholder="Image name">
+            <button id="uploadBtn" class="interface-btn">Upload</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => enterAct(nameInput, uploadBtn.onclick));
+    const uploadHelp = document.getElementById("upload-help");
+    const popup = document.getElementById("popup-upload");
+    const preview = document.getElementById("imagePreview");
+    const nameInput = document.getElementById("imageName");
+    const chooseFileDiv = document.getElementById("choose-file");
+    const nameFileDiv = document.getElementById("name-file");
+    const statusDiv = document.getElementById("uploadStatus");
+    const fileInput = document.getElementById("imageFile");
+    const uploadBtn = document.getElementById("uploadBtn");
+    fileInput.value = "";
+    let popIsUp = false;
+    function togglePopup(show=null) {
+        if (show === null) show = !popIsUp;
+        popup.style.display = show ? "flex" : "none";
+        popIsUp = show;
+    }function uploadTemp(file) {
+        fileInput.style.display = "none";
+        let formData = new FormData();
+        formData.append("image", file);
+        fetch("/hacks/images/temporary", {
+            method: "POST",
+            body: formData,
+            headers: { 'X-CSRFToken': window.csrf_token }
+        }).then(res => res.json()).then(({url}) => {
+            preview.src = url;
+            preview.style.display = "block";
+            nameFileDiv.style.display = "flex";
+            chooseFileDiv.style.display = "none";
+            uploadHelp.style.display = "none";
+            failUpload("Enter a name");
+        })
+    }function failUpload(message) {
+        statusDiv.textContent = message;
+        statusDiv.style.color = "red";
+        setTimeout(() => {
+            if(statusDiv.style.color === 'green') return;
+            statusDiv.textContent = "";
+            statusDiv.style.color = "";
+        }, 3000);
+    }
+
+    uploadBtn.onclick = () => {
+        if (!preview.src) return failUpload("Please choose an image");
+        let name = encodeURIComponent(nameInput.value.trim());
+        if (!name) return failUpload("Enter a name");
+        if (!/^[a-zA-Z0-9_-]+$/.test(name)) return failUpload('Name can only contain letters, numbers, underscores, and hyphens');
+        fetch(`${preview.src}/save`, {
+            method: "POST",
+            headers: { 'X-CSRFToken': window.csrf_token },
+            body: name
+        }).then(res => {
+            if (!res.ok) return failUpload("Name is taken");
+            statusDiv.textContent = "Image saved successfully.";
+            statusDiv.style.color = "green";
+            setTimeout(() => {
+                statusDiv.textContent = "";
+                togglePopup(false);
+                preview.src = "";
+                preview.style.display = "none";
+                nameInput.value = "";
+                fileInput.value = "";
+                fileInput.style.display = "block";
+                nameFileDiv.style.display = "none";
+                chooseFileDiv.style.display = "block";
+                window.afterImageUpload()
+            }, 1000);
+        })
+    };window.afterImageUpload = () => {}
+
+    fileInput.addEventListener("change", () => {
+        if (fileInput.files.length > 0) {
+            let file = fileInput.files[0];
+            if (file.type.startsWith("image/")) {
+                togglePopup(true);
+                uploadTemp(file);
+            }
+        }
+    });
+
+    document.addEventListener("keydown", e => {
+        if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable) return;
+        if (e.key.toLowerCase() === "i" || e.key.toLowerCase() === "ш"){
+            togglePopup();
+        }
+    });
+
+    // Handle drag & drop
+    document.addEventListener("dragover", e => e.preventDefault());
+    document.addEventListener("drop", e => {
+        e.preventDefault();
+        if (e.dataTransfer.files.length > 0) {
+            uploadTemp(e.dataTransfer.files[0]);
+            togglePopup(true);
+        }
+    });
+
+    // Handle paste
+    document.addEventListener("paste", e => {
+        let items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.startsWith("image/")) {
+                let file = items[i].getAsFile();
+                togglePopup(true);
+                uploadTemp(file);
+                return;
+            }
+        }
+    });
+</script>

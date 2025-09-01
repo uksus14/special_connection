@@ -1,0 +1,22 @@
+{% extends 'e_base.html' %}
+{% load static %}
+{% block title %}Home{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+{% block main %}
+<header>
+    <input type="text" id="markdown-name" placeholder="Enter markdown title...">
+    <button class="interface-btn" onclick="addMarkdown()">Add Markdown</button>
+</header>
+
+<main>
+    <div class="card-grid">
+        {% for markdown in markdowns %}
+            {% include 'card.html' with brief=False %}
+        {% endfor %}        
+    </div>
+</main>
+{% endblock %}

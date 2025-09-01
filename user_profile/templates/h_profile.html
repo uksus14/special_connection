@@ -1,0 +1,124 @@
+{% extends 'h_base.html' %}
+{% load static %}
+{% block title %}Profile{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+<style>
+    *{
+        box-sizing: border-box;
+    }
+    body{
+        display: flex;
+        flex-direction: column;
+        height: 100dvh;
+        justify-content: space-between;
+    }header{
+        gap: 20px;
+        margin-bottom: 0;
+    }span.pill{
+        padding: 0 6px;
+        padding-bottom: 2px;
+    }#top-buttons{
+        display: none;
+    }#main{
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }#block{
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+        padding: 20px;
+        width: 60%;
+        height: 80%;
+        border-radius: 10px;
+        border: 3px var(--secondary-color) solid;
+    }#name{
+        height: 30px;
+        width: 100px;
+    }#name > *{
+        height: 100%;
+        width: 100%;
+        margin: 0 auto;
+    }#name-display{
+        font-size: x-large;
+        text-align: center;
+        cursor: pointer;
+        padding: 0;
+    }#name-input{
+        font-size: large;
+        padding: 4px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        outline: none;
+    }#ownership-dot{
+        cursor: pointer;
+        border-radius: 50%;
+        height: 70px;
+        width: 70px;
+        padding: 0;
+        margin-bottom: 30px;
+    }h2{
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+{% block header %}
+<div style="font-size: 2em">
+    Hello <span class="pill pill-{{ request.user.pk }}">{{ request.user.name }}</span>!
+</div>
+<button class="interface-btn" style="margin-left: 50vw" onclick="logout()">Log out</button>
+{% endblock %}
+{% block main %}
+<main id="main">
+    <div id="block">
+        <div id="name">
+            <p id="name-display">{{ request.user.name }}</p>
+            <input id="name-input" type="text" style="display: none;" />
+        </div>
+        <input type="color" name="color" id="color" value="#{{ request.user.color }}" style="display: none">
+        <label for="color" id="ownership-dot" class="pill pill-{{ request.user.pk }}"></label>
+        <div>
+            <h2>There will be stuff here</h2>
+            <h2>I swear</h2>
+        </div>
+    </div>
+</main>
+{% endblock %}
+{% block js %}
+<script>
+    const colorInput = document.getElementById('color');
+    const nameDisplay = document.getElementById('name-display');
+    const nameInput = document.getElementById('name-input');
+    function logout(){
+        update(`{% url 'logout' %}`)
+    }function update(url){
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': window.csrf_token }
+        }).then(response => {
+            if(response.ok)window.location.reload();
+            else alert("It didn't work, sorry")
+        });
+    }
+    colorInput.onchange = () => update(`{% url 'recolor' %}?color=${colorInput.value.replace(/^#/, '')}`)
+    nameDisplay.addEventListener('click', (ev) => {
+        nameInput.value = nameDisplay.textContent;
+        nameDisplay.style.display = 'none';
+        nameInput.style.display = 'block';
+        nameInput.focus();
+    });
+    function saveName(){
+        const newName = nameInput.value.trim();
+        if(newName == nameDisplay.innerText.trim()) return nameInput.blur()
+        update(`{% url 'rename' %}?name=${newName}`);
+    }nameInput.addEventListener('blur', (ev) => {
+        if(nameInput.value == nameDisplay.textContent){
+            nameDisplay.style.display = 'block';
+            nameInput.style.display = 'none';
+        }
+    });enterAct(nameInput, saveName);
+</script>
+{% endblock %}

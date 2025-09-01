@@ -1,0 +1,16 @@
+{
+    "users": [
+        {
+            "pk": 1,
+            "name": "",
+            "color": "",
+            "spotifyAPI": ""
+        },
+        {
+            "pk": 2,
+            "name": "",
+            "color": "",
+            "spotifyAPI": ""
+        }
+    ]
+}

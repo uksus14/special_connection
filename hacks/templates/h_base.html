@@ -1,0 +1,24 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head data-reality="hacks">
+    {% include 'shared_head.html' %}
+    <title>{% block title %}{% endblock %} - hacks</title>
+    <link rel="stylesheet" href="{% static 'css/hacks_base.css' %}">
+    {% block extra_head %}
+    {% endblock %}
+</head>
+<body>
+    <header>
+        <button class="interface-btn" onclick="back()" id="backBtn">Back</button>
+        {% block header %}
+        {% endblock %}
+    </header>
+    {% block main %}
+    {% endblock %}
+    {% include 'interface.html' %}
+    <script src="{% static 'js/base.js' %}"></script>
+    {% block js %}
+    {% endblock %}
+</body>
+</html>

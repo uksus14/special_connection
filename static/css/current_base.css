@@ -1,0 +1,14 @@
+:root {
+    --primary-color: #e8f5f7;
+    --secondary-color: #00b4d8;
+}
+.unseen-dot {
+    height: 10px;
+    width: 10px;
+    background-color: #0a4;
+    border-radius: 50%;
+    display: inline-block;
+}
+#title {
+    cursor: pointer;
+}

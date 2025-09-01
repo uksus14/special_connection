@@ -1,0 +1,12 @@
+{% extends 'tm_base.html' %}
+{% load static %}
+{% load filter_extras %}
+{% block title %}Does not exist{% endblock %}
+
+{% block main %}
+<main id="main">
+    <div class="center only-message">
+        <p>Markdown with index {{ markdown.index }} does not exist yet, go to <a href="?time={{ markdown.first.edited|delay|to_string }}">the creation time</a></p>
+    </div>
+</main>
+{% endblock %}

@@ -1,0 +1,9 @@
+:root {
+    --primary-color: #fce4ec;
+    --secondary-color: #e91e63;
+}
+#fileLabel {
+    border: 2px solid var(--secondary-color);
+}#fileLabel:hover {
+    background-color: #ddd;
+}

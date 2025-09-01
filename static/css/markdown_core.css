@@ -1,0 +1,38 @@
+#main{
+    box-sizing: border-box;
+}#main *{
+    box-sizing: border-box;
+}
+#main .center{
+    width: 70%;
+    margin: 0 auto;
+}
+#main .only-message{
+    margin-top: 30vh;
+    font-size: xx-large;
+}
+#main{
+    padding: 20px;
+    width: 100%;
+}
+#main .user-dynamic{
+    cursor: pointer;
+}
+#main span.pill{
+    padding: 0 4px;
+    padding-bottom: 2px;
+}
+#main .list{
+    padding: 10px;
+    border-left: 2px var(--secondary-color) solid;
+}
+#main .list > div{
+    display: flex;
+    gap: 10px;
+}
+#main .list p{
+    margin: 0;
+}
+#main .list > .ownership-dot{
+    margin: auto 0;
+}

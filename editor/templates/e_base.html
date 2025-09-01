@@ -1,0 +1,21 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head data-reality="editor">
+    <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css">
+    {% include 'shared_head.html' %}
+    <title>{% block title %}{% endblock %} - editor</title>
+    <link rel="stylesheet" href="{% static 'css/editor_base.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {% include 'upload_popup.html' %}
+    {% block main %}{% endblock %}
+    {% include 'interface.html' %}
+    <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    {% block js %}
+    {% endblock %}
+</body>
+</html>

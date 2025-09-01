@@ -1,0 +1,27 @@
+{% extends 'tm_base.html' %}
+{% load static %}
+{% block title %}Home{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+{% block main %}
+<main>
+    <div class="card-grid">
+        {% for markdown in markdowns %}
+            {% if markdown.active %}
+                {% include 'card.html' %}
+            {% endif %}
+        {% endfor %}
+    </div>
+    <div id="dividor"></div>
+    <div class="card-grid">
+        {% for markdown in markdowns %}
+            {% if not markdown.active %}
+                {% include 'card.html' with brief=True %}
+            {% endif %}
+        {% endfor %}
+    </div>
+</main>
+{% endblock %}

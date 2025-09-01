@@ -1,0 +1,180 @@
+{% extends 'h_base.html' %}
+{% load static %}
+{% load filter_extras %}
+{% block title %}Images{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+<style>
+    body{
+        --card-size: 200px;
+        --card-gap: 15px;
+    }
+    .image-card {
+        background: #fff;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        cursor: pointer;
+        text-align: center;
+    }
+    .image-card img {
+        width: 100%;
+        height: var(--card-size);
+        object-fit: cover;
+        object-position: center;
+        border-radius: 5px;
+    }
+    .image-info {
+        display: flow-root;
+        margin-top: 5px;
+        font-size: 0.85rem;
+        justify-content: space-between;
+    }
+    .image-info .pill {
+        float: right;
+    }
+    .image-info .name {
+        font-weight: bold;
+        float: left;
+        padding: .4em 10px;
+        padding-left: 0;
+    }
+    /* Popup styles */
+    #popup-name {
+        padding-left: 8px;
+    }
+    .status {
+        margin-top: 8px;
+        font-size: 0.9rem;
+    }
+    .success {
+        color: green;
+    }
+    .error {
+        color: red;
+    }
+</style>
+{% endblock %}
+{% block header %}
+    <input type="text" id="search-input" placeholder="Search images...">
+    <label for="imageFile" id="fileLabel" class="interface-btn">Upload Image</label>
+{% endblock %}
+{% block main %}
+<main class="card-grid">
+    {% for image in images %}
+    {% if image.active %}
+    <div class="image-card" data-name="{{ image.name }}" data-time="{{ image.created_at }}" data-src="{% url 'image' image.name %}" data-author="{{ image.author.pk }}">
+        <img src="{% url 'image' image.name %}" alt="{{ image.name }}">
+        <div class="image-info">
+            <div class="name">{{ image.name }}</div>
+            <div style="float:right" class="pill pill-{{ image.author.pk }}">{{ image.created_at|timesince_short }}</div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% for image in images %}
+    {% if not image.active %}
+    <div class="image-card inactive" data-name="{{ image.name }}" data-time="{{ image.created_at }}" data-src="{% url 'image' image.name %}" data-author="{{ image.author.pk }}">
+        <div class="image-info" style="margin-bottom: 20px;">
+            <div class="name">{{ image.name }}</div>
+            <div style="float:right" class="pill pill-{{ image.author.pk }}">{{ image.created_at|timesince_short }}</div>
+        </div>
+        <button class="interface-btn error" onclick="toggleActive('{{ image.name }}')">Restore</button>
+    </div>
+    {% endif %}
+    {% endfor %}
+</main>
+{% endblock %}
+{% block js %}
+{% include 'upload_popup.html' %}
+<div id="popup-image" class="popup">
+    <div class="popup-content">
+        <img id="popupImage" src="" alt="">
+        <div class="image-info">
+            <div id="popup-name" class="name">{{ image.name }}</div>
+            <div id="popup-time" class="pill">{{ image.created_at|timesince_short }}</div>
+        </div>
+        <div class="rename-section">
+            <input type="text" id="renameInput" placeholder="Enter new name">
+            <button id="renameBtn" class="interface-btn">Rename</button>
+            <button class="interface-btn" onclick="toggleActive(currentCard.dataset.name)">Deactivate</button>
+        </div>
+        <div class="status" id="statusMsg"></div>
+    </div>
+</div>
+<script>
+    window.afterImageUpload = () => window.location.reload();
+    const searchInput = document.getElementById('search-input');
+    const imageCards = document.getElementsByClassName('image-card');
+    const popupView = document.getElementById('popup-image');
+    const popupImage = document.getElementById('popupImage');
+    const popupName = document.getElementById('popup-name');
+    const popupTime = document.getElementById('popup-time');
+    const renameInput = document.getElementById('renameInput');
+    const renameBtn = document.getElementById('renameBtn');
+    const statusMsg = document.getElementById('statusMsg');
+    
+    let currentCard = null;
+    
+    function toggleActive(name){
+        fetch(`/hacks/images/${name}/toggle-active`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': window.csrf_token },
+        }).then(res => {
+            if(res.ok)window.location.reload();
+            else alert('that failed, sorry');
+        })
+    }
+
+    [...imageCards].forEach(card => {
+        if(!card.classList.contains("inactive")) card.onclick = () => {
+            currentCard = card;
+            popupName.textContent = card.dataset.name;
+            popupTime.textContent = card.dataset.time;
+            popupTime.className = `pill pill-${card.dataset.author}`;
+            popupImage.src = card.dataset.src;
+            renameInput.value = card.dataset.name;
+            statusMsg.textContent = '';
+            popupView.style.display = 'flex';
+        };
+    });
+    searchInput.onchange = () => setTimeout(() => {
+        const query = (searchInput.value || "").toLowerCase();
+        console.log(query);
+        [...imageCards].forEach(card => {
+            const name = card.dataset.name.toLowerCase();
+            card.style.display = name.includes(query) ? 'block' : 'none';
+        });
+    }, 0);
+    searchInput.onkeyup = searchInput.onchange;
+    
+    function fail(message) {
+        statusMsg.textContent = message;
+        statusMsg.className = 'status error';
+    }
+    
+    renameBtn.onclick = () => {
+        const newName = renameInput.value.trim();
+        if(currentCard.dataset.name == newName) return fail('Name is the same as before');
+        if(!newName) return fail('Name cannot be empty');
+        if(!/[^#:/\\?&]+$/.test(newName)) return fail('Name cannot contain punctuation.');
+        if(newName.length > 90) return fail('Name cannot be so long.');
+        fetch(`/hacks/images/${currentCard.dataset.name}/rename`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': window.csrf_token },
+            body: newName
+        }).then(response => {
+            if (!response.ok) {
+                return response.json().then(data => fail(data.message || 'Failed to rename image'));
+            }currentCard.setAttribute('data-name', newName);
+            currentCard.getElementsByClassName('name')[0].textContent = newName;
+            popupName.textContent = newName;
+            statusMsg.textContent = 'Renaming successful!';
+            statusMsg.className = 'status success';
+            setTimeout(() => {
+                popupView.style.display = 'none';
+            }, 1000);
+        })
+    };enterAct(renameInput, renameBtn.onclick);
+</script>
+{% endblock %}

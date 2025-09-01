@@ -1,0 +1,197 @@
+{% extends 'e_base.html' %}
+{% load static %}
+{% block title %}{{ markdown.title.content }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/markdown.css' %}">
+<style>
+    #title{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }#title-display{
+        cursor: pointer;
+    }#title-input{
+        font-size: large;
+        padding: 4px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        outline: none;
+        width: calc(100% - 60px);
+    }.controls{
+        height: 30px;
+        display: flex;
+        gap: 5px;
+    }.controls > *{
+        width: 30px;
+        height: 100%
+    }
+</style>
+{% endblock %}
+{% block main %}
+<header>
+    <div id="title" class="pill">
+        <p id="title-display">{{ markdown.title.content }}</p>
+        <input id="title-input" type="text" style="display: none;" />
+        <div id="ownership-dot" class="ownership-dot pill{% for owner in markdown.ownership.owners.all %} pill-{{ owner.pk }}{% endfor %}"></div>
+    </div>
+    <div id="control-buttons">
+        <button class="interface-btn green-btn" onclick="saveMarkdown()">Save</button>
+        <button class="interface-btn orange-btn" id="view-btn">View</button>
+        <button class="interface-btn red-btn" onclick="detele()">Delete</button>
+    </div>
+    <div id="generalInfo">
+        <p>created: <span class="pill pill-{{ markdown.downtime.author.pk }}">{{ markdown.downtime.end }}</span></p>
+        <p>last edited: <span id="last-edited" class="pill pill-{{ markdown.lastc.author.pk }}">{{ markdown.edited }}</span></p>
+    </div>
+</header>
+<main>
+    <div id="editor-block">
+        <div class="controls">
+            <button title="bolden the selected text" onclick="bold()"></button>
+            <button title="italicise the selected text" onclick="italic()"></button>
+            <button title="strike through the selected text" onclick="strikethrough()"></button>
+            <button title="add a list" onclick="list()"></button>
+            <label for="imageFile" title="add an image"></label>
+        </div>
+        <textarea id="editor"></textarea>
+    </div>
+    <div id="view" style="display: none">
+        <div id="main"></div>
+    </div>
+</main>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'js/dynamic_markdown.js' %}"></script>
+<script>
+    window.dynamicMarkdownLocal = true;
+    const currentMarkdown = window.location.pathname.replace(`/${currentReality}/`, `/current/`);
+    const titleBlock = document.getElementById('title');
+    const titleDisplay = document.getElementById('title-display');
+    const titleInput = document.getElementById('title-input');
+    const ownershipDot = document.getElementById('ownership-dot');
+    const editor = document.getElementById('editor');
+    const editorBlock = document.getElementById('editor-block');
+    const viewBlock = document.getElementById('view');
+    const viewBtn = document.getElementById('view-btn');
+    const main = document.getElementById('main');
+    let isViewing = false;
+    titleDisplay.addEventListener('click', (ev) => {
+        titleInput.value = titleDisplay.textContent;
+        titleDisplay.style.display = 'none';
+        titleInput.style.display = 'block';
+        titleInput.focus();
+    });
+    function saveTitle(){
+        const newTitle = titleInput.value.trim();
+        if(newTitle == titleDisplay.innerText.trim()){
+            titleDisplay.style.display = 'inline';
+            titleInput.style.display = 'none';
+            return;
+        }fetch(window.location.href, {
+            method: 'POST',
+            body: JSON.stringify({title: newTitle}),
+            headers: { 'X-CSRFToken': window.csrf_token }
+        }).then(response => {
+            if(response.ok){
+                titleDisplay.textContent = newTitle;
+                changed();
+            }
+            titleDisplay.style.display = 'inline';
+            titleInput.style.display = 'none';
+        });
+    }titleInput.addEventListener('blur', (ev) => {
+        if(ev.explicitOriginalTarget != ownershipDot)saveTitle();
+    });enterAct(titleInput, saveTitle);
+    ownershipDot.addEventListener('click', (ev) => {
+        toggleOwnerLocal()
+        fetch("{{ markdown.url }}?action=change-owner", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': window.csrf_token }
+        }).then(response => {
+            if(!response.ok){
+                response.json().then(({message}) => console.error(message))
+                throw new Error(`Response status: ${response.status}`);
+            }changed()
+        }).catch(error => toggleOwnerLocal())
+    });
+    const myPill = 'pill-{{ request.user.pk }}';
+    function toggleOwnerLocal() {
+        if(ownershipDot.classList.contains(myPill))
+            ownershipDot.classList.remove(myPill)
+        else ownershipDot.classList.add(myPill)
+    }function saveMarkdown(){
+        fetch(window.location.href, {
+            method: 'POST',
+            body: JSON.stringify({content: editor.value}),
+            headers: { 'X-CSRFToken': window.csrf_token }
+        }).then(response => {
+            if (!response.ok){
+                response.json().then(({message}) =>
+                    `${response.status} because ${message}`
+                ).catch(() => `${response.status}`).then(details => {
+                    throw Error(details)
+                })
+            }changed();
+            response.text().then(content => {if(content)editor.value = content})
+        }).catch(details => {
+            alert(`there was an error! error code: ${details}. save the text somewhere before leaving`);
+        })
+    }function detele() {
+        fetch("{{ markdown.url }}", {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': window.csrf_token }
+        }).then(response => {
+            if(!response.ok){
+                response.json().then(({message}) => console.error(message))
+                throw new Error(`Response status: ${response.status}`);
+            }window.location.href = "{% url 'c_home' %}";
+        }).catch(error => alert("there was an error"))
+    }
+    const lastEdited = document.getElementById('last-edited');
+    function changed(){
+        lastEdited.innerHTML = formatDatetime();
+        lastEdited.className = `pill ${myPill}`
+    }function toggleView(){
+        if(isViewing){
+            viewBlock.style.display = "none";
+            editorBlock.style.display = "block";
+            viewBtn.innerText = "View"
+        }else{
+            render();
+            viewBlock.style.display = "block";
+            editorBlock.style.display = "none";
+            viewBtn.innerText = "Edit"
+        }isViewing = !isViewing
+    }viewBtn.onclick = toggleView
+    function render(){
+        fetch("/render", {
+            method: 'POST',
+            body: editor.value,
+            headers: { 'X-CSRFToken': window.csrf_token }
+        }).then(res => res.json()).then(({content, source}) => {
+            if(isViewing){
+                isViewing = false;
+                editor.value = source;
+                isViewing = true
+            }else editor.value = source;
+            main.innerHTML = content;
+        })
+    }
+    function addText(text){
+        editor.value = `${editor.value}\n${text}\n`;
+    }editor.onchange = () => {
+        if(isViewing) render();
+    }
+    window.afterUpload = function({url}) { addText(`!image(${url})`); };
+    const contentSearch = new URLSearchParams(window.location.search);
+    contentSearch.set("content", "true");
+    fetch(`${window.location.pathname}?${contentSearch.toString()}`, {
+        method: 'GET',
+        headers: { 'X-CSRFToken': window.csrf_token }
+    }).then(response => response.json()).then(({content}) => {
+        editor.value = content
+    });
+</script>
+{% endblock %}

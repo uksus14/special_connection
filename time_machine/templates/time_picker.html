@@ -1,0 +1,381 @@
+<style>
+    .time-picker {
+        flex: 3;
+        text-align: center;
+        color: #000;
+    }
+    .time-picker .half-display {
+        flex: 1;
+    }
+    .time-picker .half-display,
+    .time-picker .display {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }.time-picker .display {
+        justify-content: center;
+        margin-bottom: 10px;
+        font-size: 2em;
+    }
+    .time-picker .display input {
+        width: 80px;
+        font-size: 2em;
+        text-align: center;
+        border: none;
+        outline: none;
+        background: rgba(var(--user-color-rgb), .4);
+        border-radius: 6px;
+        padding: 5px;
+    }
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield; /* Firefox */
+    }
+    .time-picker .ampm {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.7em;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .time-picker .ampm button {
+        border: none;
+        background: white;
+        padding: 4px;
+        cursor: pointer;
+    }
+    .time-picker .ampm .active {
+        background: var(--user-color);
+    }
+    .time-picker #clock {
+        width: 250px;
+        height: 250px;
+        border-radius: 50%;
+        background: #bbb;
+        margin: 0 auto;
+        position: relative;
+        user-select: none;
+    }.time-picker #clock * {
+        user-select: none;
+    }
+    .time-picker #hand {
+        width: 2px;
+        height: 35%;
+        background: var(--user-color);
+        position: absolute;
+        top: 15%;
+        left: calc(50% - .5px);
+        transform-origin: bottom;
+        transition: transform .2s ease-out;
+    }
+    .time-picker .change-mark,
+    .time-picker .marking {
+        width: 1px;
+        height: 15%;
+        background: var(--user-color);
+        position: absolute;
+        top: 20%;
+        left: 50%;
+        transform-origin: 50% 200%;
+    }.time-picker .change-mark {
+        z-index: 10;
+        position: absolute;
+        width: 2px;
+        height: 3%;
+        top: 2%;
+        left: 50%;
+        transform-origin: 0 1600%;
+    }
+    .time-picker #downtime-arc {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 110%;
+        height: 110%;
+        border-radius: 50%;
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), black 0);
+        mask: radial-gradient(farthest-side, transparent calc(100% - 10px), black 0);
+        transform: translate(-50%, -50%);
+        z-index: 5;
+    }
+    .time-picker .center-dot {
+        width: 10px;
+        height: 10px;
+        background: var(--user-color);
+        border-radius: 50%;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    .time-picker #numbers {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        display: flex; justify-content: center; align-items: center;
+    }
+    .time-picker #numbers div {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        font-size: 1em;
+        height: 1.5em;
+        width: 1.5em;
+        color: #fff;
+        border-radius: 50%;
+        transition: background-color .2s ease-out;
+    }
+    .time-picker #numbers div.selected {
+        background-color: var(--user-color);
+        font-weight: bold;
+        color: #000;
+    }
+</style>
+<div class="time-picker">
+    <div class="display">
+        <div class="half-display" style="justify-content: flex-end;">
+            <input id="hour" type="number">
+        </div>
+        <span>:</span>
+        <div class="half-display" style="justify-content: flex-start;">
+            <input id="minute" type="number">
+            <div class="ampm">
+                <button id="amBtn">AM</button>
+                <button id="pmBtn">PM</button>
+            </div>
+        </div>
+    </div>
+    <div id="clock">
+        <div id="hand"></div>
+        <div id="markings"></div>
+        <div id="change-markings"></div>
+        <div id="downtime-arc"></div>
+        <div class="center-dot"></div>
+        <div id="numbers"></div>
+    </div>
+</div>
+
+<script>
+    const numbersContainer = document.getElementById('numbers');
+    const amBtn = document.getElementById('amBtn');
+    const pmBtn = document.getElementById('pmBtn');
+    const hourInput = document.getElementById('hour');
+    const minuteInput = document.getElementById('minute');
+    const clock = document.getElementById('clock');
+    const hand = document.getElementById('hand');
+    const markings = document.getElementById('markings');
+    const changeMarkings = document.getElementById('change-markings');
+    const downtimeArcs = document.getElementById('downtime-arc');
+    let selectingHours;
+    let isPM;
+    document.addEventListener('DOMContentLoaded', () => {
+        switchToHours(true);
+        TimePickerInit(window.datetime)
+    });
+
+    function TimePickerInit(datetime) {
+        amBtn.onclick = () => {
+            isPM = false;
+            hourInput.value = +hourInput.value % 12;
+            updateDisplay();
+            window.renderClockMetaData();
+            selectingHours && (renderNumbers(), reselectNumber())
+        };
+        pmBtn.onclick = () => {
+            isPM = true;
+            hourInput.value = (+hourInput.value % 12) + 12;
+            updateDisplay();
+            window.renderClockMetaData();
+            selectingHours && (renderNumbers(), reselectNumber())
+        };
+        
+        // Click hour/minute
+        hourInput.onclick = () => switchToHours(true);
+        minuteInput.onclick = () => switchToHours(false);
+        
+        hourInput.onchange = () => {
+            hourInput.value < 12 ? amBtn.click() : pmBtn.click();
+            setHandFromValues();
+        }
+        
+        // Drag functionality
+        let dragging = 0;
+        clock.onmousedown = e => { dragging = Date.now(); setFromCoords(e.clientX, e.clientY, true); };
+        clock.onmousemove = e => { if (dragging) setFromCoords(e.clientX, e.clientY, false); };
+        clock.onmouseup = e => {
+            let snap = true;
+            if (Date.now() - dragging > 300) snap = false;
+            setFromCoords(e.clientX, e.clientY, snap);
+            dragging = 0;
+            if (selectingHours) setTimeout(() => switchToHours(false), 300);
+        };
+        hourInput.value = datetime.getHours();
+        minuteInput.value = datetime.getMinutes();
+        isPM = hourInput.value >= 12;
+        if (isPM) pmBtn.classList.add('active');
+        else amBtn.classList.add('active');
+        updateDisplay();
+        renderNumbers();
+        setHandFromValues();
+    }
+
+    function switchToHours(isHours) {
+        selectingHours = isHours;
+        const focus = isHours ? hourInput : minuteInput;
+        const unfocus = isHours ? minuteInput : hourInput;
+        focus.style.background = 'rgba(var(--user-color-rgb), .8)';
+        unfocus.style.background = 'rgba(var(--user-color-rgb), .4)';
+        renderNumbers();
+        setHandFromValues();
+    }
+
+    window.renderClockMetaData = () => {
+        window.downtimes && renderTimeDowntimes();
+        currentChanges() && renderTimeChanges();
+    }
+    function isSelectedDate(date) {
+        return date.getFullYear() == window.selected_datetime.getFullYear() &&
+            date.getMonth() == window.selected_datetime.getMonth() &&
+            date.getDate() == window.selected_datetime.getDate();
+    }
+
+    function renderTimeDowntimes() {
+        const conicData = "transparent 0 " + window.downtimes.filter(({start, end}) => {
+            return isSelectedDate(start) || isSelectedDate(end) || (start < window.selected_datetime && window.selected_datetime < end);
+        }).filter(({start, end}) => {
+            if(start < window.selected_datetime && window.selected_datetime < end) return true;
+            if(!selectingHours) return start.getHours() == +hourInput.value || end.getHours() == +hourInput.value;
+            if(isPM) return start.getHours() >= 12 || end.getHours() >= 12;
+            else return start.getHours() < 12 || end.getHours() < 12;
+        }).map(({start, end}) => {
+            const fixedStart = new Date(start)
+            const fixedEnd = new Date(end)
+            if(fixedStart.getFullYear() != window.selected_datetime.getFullYear() ||
+               fixedStart.getMonth() != window.selected_datetime.getMonth() ||
+               fixedStart.getDate() != window.selected_datetime.getDate()) {
+                fixedStart.setFullYear(window.selected_datetime.getFullYear(), window.selected_datetime.getMonth(), window.selected_datetime.getDate());
+                fixedStart.setHours(0, 0, 0);
+            }if(fixedEnd.getFullYear() != window.selected_datetime.getFullYear() ||
+               fixedEnd.getMonth() != window.selected_datetime.getMonth() ||
+               fixedEnd.getDate() != window.selected_datetime.getDate()) {
+                fixedEnd.setFullYear(window.selected_datetime.getFullYear(), window.selected_datetime.getMonth(), window.selected_datetime.getDate());
+                fixedEnd.setHours(23, 59, 59);
+            }if(isPM && fixedStart.getHours() < 12) fixedStart.setHours(12, 0, 0);
+            if(!isPM && fixedEnd.getHours() >= 12) fixedEnd.setHours(11, 59, 59);
+            let startAngle, endAngle;
+            if(selectingHours){
+                startAngle = .5*fixedStart.getMinutes() + 30*(fixedStart.getHours() % 12);
+                endAngle = .5*fixedEnd.getMinutes() + 30*(fixedEnd.getHours() % 12);
+            }else {
+                if(start.getHours() != +hourInput.value) fixedStart.setHours(+hourInput.value, 0, 0);
+                if(end.getHours() != +hourInput.value) fixedEnd.setHours(+hourInput.value, 59, 59);
+                startAngle = .1*fixedStart.getSeconds() + 6*fixedStart.getMinutes();
+                endAngle = .1*fixedEnd.getSeconds() + 6*fixedEnd.getMinutes();
+            }return `${startAngle}deg, var(--downtime-color) ${startAngle}deg ${endAngle}deg, transparent ${endAngle}deg`;
+        }).join(' ') + " 360deg";
+        downtimeArcs.style.background = `conic-gradient(${conicData})`;
+    }function renderTimeChanges() {
+        changeMarkings.innerHTML = '';
+        const now = new Date();
+        const nowMarking = createChangeMark(now, "var(--now-color)");
+        if(!isSelectedDate(now))nowMarking.style.display = 'none';
+        if(isPM ? now.getHours() < 12 : now.getHours() >= 12)nowMarking.style.display = 'none';
+        if(!selectingHours && now.getHours() != window.selected_datetime.getHours())nowMarking.style.display = 'none'
+        currentChanges().filter(({time}) => isSelectedDate(time)).filter(({time}) => {
+            if(!selectingHours) return time.getHours() == +hourInput.value;
+            return isPM ? time.getHours() >= 12 : time.getHours() < 12;
+        }).forEach(({time, user}) => createChangeMark(time, `var(--color-${user})`));
+    }function createChangeMark(time, color) {
+        const angle = selectingHours ? .5*time.getMinutes() + 30*(time.getHours() % 12) : .1*time.getSeconds() + 6*time.getMinutes();
+        const marking = document.createElement('div');
+        marking.className = 'change-mark';
+        marking.style.transform = `rotate(${angle}deg)`;
+        marking.style.backgroundColor = color;
+        changeMarkings.appendChild(marking);
+        return marking
+    }
+
+    function renderNumbers() {
+        numbersContainer.innerHTML = '';
+        let count, inc, start;
+        count = 60;
+        inc = 5;
+        start = 0;
+        if(selectingHours) {
+            count = 12;
+            inc = 1;
+            start = 0 + isPM * 12;
+        }for (let i = start; i < start+count; i+=inc) {
+            const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
+            const marking = document.createElement('div');
+            marking.className = 'marking';
+            marking.style.transform = `rotate(${angle}rad)`;
+            markings.appendChild(marking);
+
+            const x = 125 + Math.cos(angle) * 100;
+            const y = 125 + Math.sin(angle) * 100;
+            const numDiv = document.createElement('div');
+            numDiv.textContent = i.toString().padStart(2, '0');
+            numDiv.style.left = x + 'px';
+            numDiv.style.top = y + 'px';
+            numbersContainer.appendChild(numDiv);
+        }window.renderClockMetaData()
+    }
+
+    function updateDisplay() {
+        hourInput.value = hourInput.value.padStart(2, '0');;
+        minuteInput.value = minuteInput.value.padStart(2, '0');
+        amBtn.classList.toggle('active', !isPM);
+        pmBtn.classList.toggle('active', isPM);
+        window.selected_datetime.setHours(hourInput.value, minuteInput.value)
+        window.selectedTimeChanged();
+    }
+
+    function setHandFromValues(exact=false) {
+        const max = selectingHours ? 12 : 60;
+        const value = selectingHours ? window.selected_datetime.getHours() % 12 + exact*window.selected_datetime.getMinutes()/60 : window.selected_datetime.getMinutes() + window.selected_datetime.getSeconds()/60;
+        const angle = (value / max) * 360;
+        hand.style.transform = `rotate(${angle}deg)`;
+        reselectNumber();
+    }
+    function reselectNumber() {
+        numbersContainer.childNodes.forEach(numDiv => {
+            numDiv.classList.remove('selected');
+            if(selectingHours){
+                numDiv.textContent % 12 == hourInput.value % 12 && numDiv.classList.add('selected')
+            }else{
+                +numDiv.textContent == +minuteInput.value && numDiv.classList.add('selected')
+            }
+        });
+    }
+
+    function setFromCoords(x, y, snap) {
+        const rect = clock.getBoundingClientRect();
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const dx = x - rect.left - cx;
+        const dy = y - rect.top - cy;
+        let deg = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+        if (deg < 0) deg += 360;
+        const max = selectingHours ? 12 : 60;
+        let value = deg / 360 * max;
+        if (snap && selectingHours) {
+            value = Math.round(value);
+        } else if (snap && !selectingHours) {
+            value = Math.round(value / 5) * 5;
+        }
+        if (selectingHours) {
+            hourInput.value = Math.round(value) % 12 + isPM * 12;
+        } else {
+            minuteInput.value = Math.round(value) % 60;
+        }
+        updateDisplay();
+        setHandFromValues();
+    }
+
+    // Init
+</script>

@@ -1,0 +1,51 @@
+{% load static %}
+{% load filter_extras %}
+<!DOCTYPE html>
+<html lang="en">
+<head data-reality="time-machine">
+    {% include 'shared_head.html' %}
+    <title>{% block title %}{% endblock %} - time machine ({{ time|to_string }})</title>
+    <link rel="stylesheet" href="{% static 'css/time_machine_base.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {% block main %}{% endblock %}
+    <div id="overlay">
+        <div id="popup">
+            {% include 'time_travel.html' %}
+        </div>
+    </div>
+    {% include 'interface.html' %}
+    <script>
+        let popIsUp = false;
+        function formatTime(date) {
+            return `${date.getFullYear()}-${(''+(date.getMonth()+1)).padStart(2, '0')}-${(''+date.getDate()).padStart(2, '0')} ${(''+date.getHours()).padStart(2, '0')}.${(''+date.getMinutes()).padStart(2, '0')}.${(''+date.getSeconds()).padStart(2, '0')}.${(''+date.getMilliseconds()).padStart(3, '0')}`;
+        }function timeTravel(datetime) {
+            if(datetime != window.selected_datetime){
+                window.selected_datetime = datetime;
+                window.selectedTimeChanged();
+            }window.location.reload();
+        }window.selectedTimeChanged = () => {
+            timeParams = new URLSearchParams(window.location.search);
+            timeParams.set("time", formatTime(new Date(window.selected_datetime.getTime() + 100)));
+            window.history.pushState({}, "", "?" + timeParams.toString());
+        }
+        const overlay = document.getElementById('overlay');
+        function togglePopUp(){
+            overlay.style.display = popIsUp ? 'none' : 'block';
+            popIsUp = !popIsUp;
+        }
+        document.addEventListener('keydown', (event) => {
+            if (event.key.toLowerCase() === 't' || event.key.toLowerCase() === 'е'){
+                popIsUp && timeTravel(window.selected_datetime)
+                togglePopUp();
+            }
+        });
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) togglePopUp();
+        });
+    </script>
+    {% block js %}
+    {% endblock %}
+</body>
+</html>

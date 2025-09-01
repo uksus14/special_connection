@@ -1,0 +1,74 @@
+{% extends 'h_base.html' %}
+{% load static %}
+{% load filter_extras %}
+{% block title %}Home{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+<style>
+    .card{
+        height: var(--card-size);
+        padding: 10px 0;
+    }
+    #images-card{
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: var(--card-size);
+    }
+    #images-card img{
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        top: calc(var(--i) * 15px);
+        left: calc(var(--i) * 30px);
+        object-fit: cover;
+        object-position: center;
+        border: 2px var(--secondary-color) solid;
+        border-radius: 5px;
+    }#images-card h3{
+        position: absolute;
+        bottom: 10px;
+        left: 20px;
+    }#profile-card{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }#profile-card .name{
+        font-size: x-large;
+    }#profile-card .ownership-dot{
+        border-radius: 50%;
+        height: 70px;
+        width: 70px;
+        padding: 0;
+    }
+</style>
+{% endblock %}
+{% block header %}
+    <input type="text" id="search-input" placeholder="Nothing to see here..." disabled>
+{% endblock %}
+{% block main %}
+<main class="card-grid">
+    <a href="{% url 'images' %}">
+        <div class="card" id="images-card">
+            {% for image in images %}
+            <img src="{% url 'image' image.name %}" style="--i: {{ forloop.counter }}">
+            {% endfor %}
+            <h3>Images</h3>
+        </div>
+    </a>
+    <a href="{% url 'profile' %}">
+        <div class="card" id="profile-card">
+            <p class="name">{{ request.user.name }}</p>
+            <div for="color" class="ownership-dot pill pill-{{ request.user.pk }}"></div>
+            <h3>Profile</h3>
+        </div>
+    </a>
+</main>
+{% endblock %}
+{% block js %}
+<script>
+    const backBtn = document.getElementById("backBtn");
+    backBtn.style.display = "none";
+</script>
+{% endblock %}

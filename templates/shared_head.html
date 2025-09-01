@@ -1,0 +1,35 @@
+{% load static %}
+{% load filter_extras %}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="{% static 'css/base.css' %}">
+<link rel="stylesheet" href="{% static 'css/markdown_core.css' %}">
+<style>
+    :root{
+        --user-color: #{{ request.user.color }};
+        --user-color-rgb: {{ request.user.color|color_to_rgb }};
+        {% for user in users %}
+        --color-{{ user.pk }}: #{{ user.color }};
+        {% endfor %}
+    }
+    {% for user_a in users %}
+    .pill-{{ user_a.pk }}{
+        background-color: var(--color-{{ user_a.pk }});
+    }
+    {% for user_b in users %}
+    {% if user_a.pk < user_b.pk %}
+    .pill-{{ user_a.pk }}.pill-{{ user_b.pk }}{
+        background: linear-gradient(-45deg, var(--color-{{ user_a.pk }}) 50%, var(--color-{{ user_b.pk }}) 50%);
+    }
+    {% endif %}
+    {% endfor %}
+    {% endfor %}
+</style>
+{{ users|json_script:'users-json' }}
+<script>
+    window.csrf_token = '{{ csrf_token }}';
+    window.time_string = '{{ time|to_string }}';
+    window.datetime = new Date({{ time|stamp }});
+    window.userPK = {{ request.user.pk }};
+    window.users = JSON.parse(document.getElementById('users-json').textContent);
+</script>

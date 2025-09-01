@@ -1,0 +1,63 @@
+{% extends 'c_base.html' %}
+{% load static %}
+{% block title %}{{ markdown.title.content }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/markdown.css' %}">
+{% endblock %}
+{% block main %}
+<header>
+    <div id="title" class="pill{% for owner in markdown.ownership.owners.all %} pill-{{ owner.pk }}{% endfor %}">
+        <p>{{ markdown.title.content }}</p>
+    </div>
+    <div id="control-buttons">
+        <button class="interface-btn red-btn" onclick="detele()">Delete</button>
+    </div>
+    <div id="generalInfo">
+        <p>created: <span class="pill pill-{{ markdown.downtime.author.pk }}">{{ markdown.downtime.end }}</span></p>
+        <p>last edited: <span id="last-edited" class="pill pill-{{ markdown.lastc.author.pk }}">{{ markdown.edited }}</span></p>
+    </div>
+</header>
+<div id="main"></div>
+{% endblock %}
+
+{% block js %}
+<script src="{% static 'js/dynamic_markdown.js' %}"></script>
+<script>
+    window.dynamicMarkdownLocal = false;
+    const titleBlock = document.getElementById('title');
+    const lastEdited = document.getElementById('last-edited');
+    titleBlock.addEventListener('click', (ev) => toggleOwnership());
+    const myPill = 'pill-{{ request.user.pk }}';
+    renderMarkdown()
+    function changed(){
+        lastEdited.innerHTML = formatDatetime();
+        lastEdited.className = `pill ${myPill}`
+    }function toggleOwnerLocal() {
+        if(titleBlock.classList.contains(myPill))
+            titleBlock.classList.remove(myPill)
+        else titleBlock.classList.add(myPill)
+    }function toggleOwnership() {
+        toggleOwnerLocal()
+        fetch(`${window.location.pathname}?action=change-owner`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': window.csrf_token }
+        }).then(response => {
+            if(!response.ok){
+                response.json().then(({message}) => console.error(message))
+                throw new Error(`Response status: ${response.status}`);
+            }changed();
+        }).catch(error => toggleOwnerLocal())
+    }function detele() {
+        fetch(`${window.location.pathname}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': window.csrf_token }
+        }).then(response => {
+            if(!response.ok){
+                response.json().then(({message}) => console.error(message))
+                throw new Error(`Response status: ${response.status}`);
+            }window.location.href = "{% url 'c_home' %}";
+        })
+    }
+</script>
+{% endblock %}
