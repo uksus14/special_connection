@@ -35,8 +35,9 @@ function enterAct(el, func){
     });
 }
 
+let markdownName = document.getElementById('markdown-name');
 document.addEventListener('DOMContentLoaded', () => {
-    const markdownName = document.getElementById('markdown-name');
+    markdownName = document.getElementById('markdown-name');
     if(markdownName)enterAct(markdownName, addMarkdown);
     [...document.getElementsByClassName('popup')].forEach(el => {
         el.onclick = (ev) => {
