@@ -140,7 +140,7 @@ class Markdown(models.Model):
             if request.GET.get('force', 'false').lower() == 'true':
                 markdown.index_name = index
                 markdown.save()
-            log(f"{request.get_full_path()} seen by {request.user.name} at {from_time(datetime.now())}")
+            log(request)
             if markdown.index_name == index: return func(request, markdown, **kwargs)
             return redirect(request.resolver_match.view_name, pk=pk, index=markdown.index_name, **kwargs, permanent=True)
         return view

@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from special_connection.render import render_markdown, setup_temp
 from current.models import User, Markdown
 from django.shortcuts import redirect
-from utils import protected_json
+from utils import protected_json, log
 from cryptography import hash
 import json
 
@@ -44,6 +44,7 @@ def toggle(request: HttpRequest):
         if old in old_text:
             count += 1
             markdown.change(old_text.replace(old, new), request.user)
+    log(request, f"toggling {old} to {new} {count} times")
     return JsonResponse({"message": f"successfuly replaced {count} instances of tag", "changed": bool(count)})
 
 @protected_json

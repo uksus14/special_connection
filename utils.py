@@ -64,7 +64,9 @@ def to_time(time: str) -> datetime:
 def from_time(time: datetime) -> str:
     return time.strftime(time_formatting)[:-3]
 
-def log(line: str):
+def log(line: str, extra: str=None):
+    if isinstance(line, HttpRequest):
+        return log(f"{line.get_full_path()} seen by {line.user.name} at {from_time(datetime.now())} " + (extra or ''))
     with open(BASE_DIR / 'logs.txt', 'a', encoding='utf-8') as f:
         f.write(line+'\n')
 
