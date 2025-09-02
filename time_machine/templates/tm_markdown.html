@@ -20,7 +20,7 @@
 </header>
 <main>
     <div id="source" style="display: none">
-        <textarea id="editor" disabled></textarea>
+        <textarea id="editor" disabled>{{ markdown.text.content }}</textarea>
     </div>
     <div id="render">
         <div id="main"></div>
@@ -34,7 +34,6 @@
     const renderBox = document.getElementById("render")
     const sourceBox = document.getElementById("source")
     let isViewing = false;
-    document.getElementById("editor").value = `{{ markdown.text.content|escapejs }}`;
     viewBtn.onclick = () => {
         if(isViewing){
             viewBtn.innerText = "View source code";
