@@ -6,12 +6,13 @@ function getColonName(el){
         if(el.classList.contains(`pill-${pk}`)) return name;
     }).find(name => name);
 }
-function coreToggle(id, full=false, single=false){
+function coreToggle(id, double=false, single=false){
     const el = document.getElementById(`core-${id}`);
     const oldName = getColonName(el);
     if(single) window.users.forEach(({pk}) => el.classList.toggle(`pill-${pk}`));
-    else if(full) window.users.forEach(({pk}) => el.classList.toggle(`pill-${pk}`, oldName == 'none'))
-    else el.classList.toggle(`pill-${window.userPK}`);
+    else if(!double) el.classList.toggle(`pill-${window.user.pk}`);
+    else if(oldName != 'none' && oldName != 'both') el.classList.toggle(`pill-${window.user.pk}`);
+    else window.users.forEach(({pk}) => el.classList.toggle(`pill-${pk}`));
     const newName = getColonName(el);
     if(window.dynamicMarkdownLocal){
         editor.value = editor.value.replace(`:${oldName}-${id}`, `:${newName}-${id}`)

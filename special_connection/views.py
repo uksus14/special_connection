@@ -1,9 +1,9 @@
 from django.http import HttpRequest, JsonResponse, HttpResponseNotAllowed
-from django.contrib.auth import authenticate, login, logout
 from special_connection.render import render_markdown, setup_temp
-from current.models import User, Markdown
+from django.contrib.auth import authenticate, login, logout
+from utils import protected_json, log, get_user
 from django.shortcuts import redirect
-from utils import protected_json, log
+from current.models import Markdown
 from cryptography import hash
 import json
 
@@ -61,5 +61,5 @@ def force(request: HttpRequest):
     if action == 'switch':
         new_pk = 3-request.user.pk
         logout(request)
-        login(request, User.objects.get(pk=new_pk))
+        login(request, get_user(new_pk))
         return JsonResponse({'message': 'force-switch successful'})

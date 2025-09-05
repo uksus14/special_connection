@@ -1,9 +1,8 @@
-from xml.etree.ElementTree import Element, tostring
 from markdown.inlinepatterns import InlineProcessor
 from markdown.blockprocessors import BlockProcessor
 from utils import generate_core_id, get_user
+from xml.etree.ElementTree import Element
 from markdown.extensions import Extension
-from markdown.util import AtomicString
 from images.models import Image
 from re import PatternError
 from typing import Callable

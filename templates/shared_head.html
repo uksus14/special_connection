@@ -31,6 +31,6 @@
     window.csrf_token = '{{ csrf_token }}';
     window.time_string = '{{ time|to_string }}';
     window.datetime = new Date({{ time|stamp }});
-    window.userPK = {{ request.user.pk }};
     window.users = JSON.parse(document.getElementById('users-json').textContent);
+    window.user = window.users.find(({pk}) => pk == {{ request.user.pk }});
 </script>
