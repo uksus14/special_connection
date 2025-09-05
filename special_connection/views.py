@@ -42,7 +42,7 @@ def toggle(request: HttpRequest):
     for markdown in Markdown.objects.all():
         old_text = markdown.text.content
         if old in old_text:
-            count += 1
+            count += old_text.count(old)
             markdown.change(old_text.replace(old, new), request.user)
     log(request, f"toggling {old} to {new} {count} times")
     return JsonResponse({"message": f"successfuly replaced {count} instances of tag", "changed": bool(count)})

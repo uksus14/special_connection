@@ -11,19 +11,19 @@ import regex as re
 import markdown
 
 users = lambda:{data["name"]: get_user(data["pk"]) for data in env["users"]}
-def ownership_options(zero=False, single=False) -> list[str]:
+def ownership_options(zero=False, toggle=False) -> list[str]:
     options = list(users().keys())
     if zero: options.append('zero')
-    if not single: options.extend(['none', 'both'])
+    if not toggle: options.extend(['none', 'both'])
     return options
-reownership = lambda zero=False, single=False:fr":(?P<ownership>{'|'.join(ownership_options(zero, single))})"
+reownership = lambda zero=False, toggle=False:fr":(?P<ownership>{'|'.join(ownership_options(zero, toggle))})"
 reid = r"-(?P<id>(temp|[\p{L}\p{N}]{2})[\p{L}\p{N}]{2})"
-redynamic = lambda zero=False, single=False:fr"{reownership(zero, single)}{reid}"
+redynamic = lambda zero=False, toggle=False:fr"{reownership(zero, toggle)}{reid}"
 restyles = r"(\[(?P<styles>[^\]]*)\])?"
 template_ownership = ":{ownership}"
 template_dynamic = ":{ownership}-{id}"
 reid_edit = fr"({reid})?"
-redynamic_edit = lambda zero=False, single=False:fr"({reownership(zero, single)}({reid})?)?"
+redynamic_edit = lambda zero=False, toggle=False:fr"({reownership(zero, toggle)}({reid})?)?"
 retext = r"\(\((?P<text>([^)]+\)?)+)\)\)"
 
 def parse_names(ownership: str):
@@ -168,7 +168,7 @@ class UserSpanProcessor(AutoInlineProcessor):
 class UserToggleSpanProcessor(AutoInlineProcessor):
     NAME = "user-toggle-span"
     default_owner = 'orange'
-    RE = lambda*_, dynamic:fr'!toggle{dynamic(single=True)}{retext}'
+    RE = lambda*_, dynamic:fr'!toggle{dynamic(toggle=True)}{retext}'
     TEMPLATE = f"!toggle{template_dynamic}(({{text}}))"
     def handle(self, groups: dict[str, str], string: str):
         id = groups["id"]
